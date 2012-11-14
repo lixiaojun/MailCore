@@ -47,7 +47,7 @@
 @synthesize mime=myParsedMIME, lastError, parentFolder;
 
 - (id)init {
-    [super init];
+    self = [super init];
     if (self) {
         struct mailimf_fields *fields = mailimf_fields_new_empty();
         myFields = mailimf_single_fields_new(fields);
@@ -792,7 +792,9 @@
 	
     for(iter = clist_begin(list); iter != NULL; iter = clist_next(iter)) {
         string = clist_content(iter);
-		[stringSet addObject:[[NSString alloc] initWithUTF8String:string]];
+        NSString *strObj = [[NSString alloc] initWithUTF8String:string];
+		[stringSet addObject:strObj];
+        [strObj release];
     }
 	
     return stringSet;

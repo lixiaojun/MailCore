@@ -38,6 +38,9 @@
 #import "MailCoreTypes.h"
 #import "MailCoreUtilities.h"
 
+#include <unistd.h>
+
+
 //int imap_fetch_result_to_envelop_list(clist * fetch_result, struct mailmessage_list * env_list);
 //
 int uid_list_to_env_list(clist * fetch_result, struct mailmessage_list ** result,
@@ -47,7 +50,7 @@ int uid_list_to_env_list(clist * fetch_result, struct mailmessage_list ** result
 @end
 
 @implementation CTCoreFolder
-@synthesize lastError, parentAccount=myAccount;
+@synthesize lastError, parentAccount=myAccount, idling;
 
 - (id)initWithPath:(NSString *)path inAccount:(CTCoreAccount *)account; {
     struct mailstorage *storage = (struct mailstorage *)[account storageStruct];
@@ -130,6 +133,93 @@ int uid_list_to_env_list(clist * fetch_result, struct mailmessage_list ** result
     return success;
 }
 
+- (CTIdleResult)idleWithTimeout:(NSUInteger)timeout {
+    NSAssert(!self.idling, @"Can't call idle when we are already idling!");
+    self.lastError = nil;
+    
+    BOOL success = [self connect];
+    if (!success) {
+        return CTIdleError;
+    }
+    
+    CTIdleResult result = CTIdleError;
+    int r = 0;
+    
+    self.idling = YES;
+    r = pipe(idlePipe);
+    if (r == -1) {
+        return CTIdleError;
+    }
+    
+    self.imapSession->imap_selection_info->sel_exists = 0;
+    r = mailimap_idle(self.imapSession);
+    if (r != MAILIMAP_NO_ERROR) {
+        self.lastError = MailCoreCreateErrorFromIMAPCode(r);
+        result = CTIdleError;
+    }
+    
+    if (r == MAILIMAP_NO_ERROR && self.imapSession->imap_selection_info->sel_exists == 0) {
+        int fd;
+        int maxfd;
+        fd_set readfds;
+        struct timeval delay;
+        
+        fd = mailimap_idle_get_fd(self.imapSession);
+        
+        FD_ZERO(&readfds);
+        FD_SET(fd, &readfds);
+        FD_SET(idlePipe[0], &readfds);
+        maxfd = fd;
+        if (idlePipe[0] > maxfd) {
+            maxfd = idlePipe[0];
+        }
+        delay.tv_sec = timeout;
+        delay.tv_usec = 0;
+        
+        r = select(maxfd + 1, &readfds, NULL, NULL, &delay);
+        if (r == 0) {
+            result = CTIdleTimeout;
+        } else if (r == -1) {
+            // select error condition, just ignore this
+        } else {
+            if (FD_ISSET(fd, &readfds)) {
+                // The server sent something down
+                result = CTIdleNewData;
+            } else if (FD_ISSET(idlePipe[0], &readfds)) {
+                // the idle was explicitly cancelled
+                char ch;
+                read(idlePipe[0], &ch, 1);
+                result = CTIdleCancelled;
+            }
+        }
+    } else if (r == MAILIMAP_NO_ERROR) {
+        result = CTIdleNewData;
+    }
+    
+    r = mailimap_idle_done(self.imapSession);
+    if (r != MAILIMAP_NO_ERROR) {
+        self.lastError = MailCoreCreateErrorFromIMAPCode(r);
+        result = CTIdleError;
+    }
+
+    self.idling = NO;
+    close(idlePipe[1]);
+    close(idlePipe[0]);
+    idlePipe[1] = -1;
+    idlePipe[0] = -1;
+
+    return result;
+}
+
+- (void)cancelIdle {
+    if (self.idling) {
+        int r;
+        char c;
+        
+        c = 0;
+        r = write(idlePipe[1], &c, 1);
+    }
+}
 
 - (BOOL)create {
     int err;
@@ -583,6 +673,11 @@ int uid_list_to_env_list(clist * fetch_result, struct mailmessage_list ** result
     int err;
     [msg messageStruct]->msg_flags->fl_flags=flags;
     err = mailmessage_check([msg messageStruct]);
+    if (err != MAIL_NO_ERROR) {
+        self.lastError = MailCoreCreateErrorFromIMAPCode(err);
+        return NO;
+    }
+    err = mailfolder_check(myFolder);
     if (err != MAIL_NO_ERROR) {
         self.lastError = MailCoreCreateErrorFromIMAPCode(err);
         return NO;
