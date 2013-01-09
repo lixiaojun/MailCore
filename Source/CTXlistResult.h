@@ -1,7 +1,7 @@
 /*
  * MailCore
  *
- * Copyright (C) 2007 - Matt Ronge
+ * Copyright (C) 2012 - Kris Wong
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,31 +30,12 @@
  */
 
 #import <Foundation/Foundation.h>
-#import <libetpan/libetpan.h>
 
-/*
- This class is used internally by CTSMTPConnection for SMTP connections, clients
- should not use this directly.
-*/
+@interface CTXlistResult : NSObject
 
-@interface CTSMTP : NSObject {
-    mailsmtp *mySMTP; /* This resource is created and freed by CTSMTPConnection */
-    NSError *lastError;
-}
-/*
- If an error occurred (nil or return of NO) call this method to get the error
-*/
-@property(nonatomic, retain) NSError *lastError;
+@property (nonatomic, retain) NSString *name;
+@property (nonatomic, strong, readonly) NSArray *flags;
 
-- (id)initWithResource:(mailsmtp *)smtp;
-- (BOOL)connectToServer:(NSString *)server port:(unsigned int)port;
-- (BOOL)connectWithTlsToServer:(NSString *)server port:(unsigned int)port;
-- (BOOL)helo;
-- (BOOL)startTLS;
-- (BOOL)authenticateWithUsername:(NSString *)username password:(NSString *)password server:(NSString *)server;
-- (BOOL)setFrom:(NSString *)fromAddress;
-- (BOOL)setRecipients:(id)recipients;
-- (BOOL)setRecipientAddress:(NSString *)recAddress;
-- (BOOL)setData:(NSString *)data;
-- (mailsmtp *)resource;
+- (void)addFlag:(NSString *)flag;
+
 @end
