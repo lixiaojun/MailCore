@@ -161,7 +161,12 @@
 /**
  Returns the date as given in the Date mail field
 */
-- (NSDate *)senderDate; 
+- (NSDate *)senderDate;
+
+/**
+ Returns the time zone for sender
+ */
+- (NSTimeZone*)senderTimeZone;
 
 /**
  Returns YES if the message is unread.
