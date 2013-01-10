@@ -31,6 +31,7 @@
 
 #import "MailCoreUtilities.h"
 #import "MailCoreTypes.h"
+#import "GTMBase64.h"
 
 /* direction is 1 for send, 0 for receive, -1 when it does not apply */
 void mailcore_logger(int direction, const char * str, size_t size) {
@@ -283,4 +284,30 @@ NSString *MailCoreDecodeMIMEPhrase(char *data) {
     result = [NSString stringWithCString:decodedSubject encoding:NSUTF8StringEncoding];
     free(decodedSubject);
     return result;
+}
+
+NSString *MailCoreDecodeBase64(NSString *base64String) {
+    NSData *data = [GTMBase64 webSafeDecodeString:base64String];
+    NSString *result = [[NSString alloc] initWithData:data encoding:NSUnicodeStringEncoding];
+    
+    return result;
+}
+
+NSString *MailCoreEncodeBase64(NSString* input) {
+    NSData *data = [input dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES];
+    return [[NSString alloc] initWithData:[GTMBase64 encodeData:data] encoding:NSUTF8StringEncoding];
+}
+
+const char *MailCoreEncodeMIMEPhrase(NSString *data) {
+    const char *result;
+    if ([data length]!=[data lengthOfBytesUsingEncoding:NSUTF8StringEncoding]) {
+        NSString *base64Data = [MailCoreEncodeBase64(data) autorelease];
+        NSString *encodeData = [[[NSString alloc] initWithFormat:@"=?UTF-8?B?%@?=", base64Data] autorelease];
+        result = [encodeData cStringUsingEncoding:NSUTF8StringEncoding];
+    }else{
+        result = [data cStringUsingEncoding:NSUTF8StringEncoding];
+    }
+    
+    return result;
+    
 }

@@ -328,7 +328,7 @@
 - (void)setSubject:(NSString *)subject {
     struct mailimf_subject *subjectStruct;
 
-    subjectStruct = mailimf_subject_new(strdup([subject cStringUsingEncoding:NSUTF8StringEncoding]));
+    subjectStruct = mailimf_subject_new(strdup(MailCoreEncodeMIMEPhrase(subject)));
     if (myFields->fld_subject != NULL)
         mailimf_subject_free(myFields->fld_subject);
     myFields->fld_subject = subjectStruct;
@@ -738,7 +738,7 @@
     const char *addressEmail;
 
     while((address = [objEnum nextObject])) {
-        addressName = [[address name] cStringUsingEncoding:NSUTF8StringEncoding];
+        addressName  = MailCoreEncodeMIMEPhrase([address name]);
         addressEmail = [[address email] cStringUsingEncoding:NSUTF8StringEncoding];
         err =  mailimf_mailbox_list_add_mb(imfList, strdup(addressName), strdup(addressEmail));
         assert(err == 0);
@@ -782,7 +782,7 @@
     const char *addressEmail;
 
     while((address = [objEnum nextObject])) {
-        addressName = [[address name] cStringUsingEncoding:NSUTF8StringEncoding];
+        addressName  = MailCoreEncodeMIMEPhrase([address name]);
         addressEmail = [[address email] cStringUsingEncoding:NSUTF8StringEncoding];
         err =  mailimf_address_list_add_mb(imfList, strdup(addressName), strdup(addressEmail));
         assert(err == 0);

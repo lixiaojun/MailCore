@@ -91,6 +91,29 @@ static void download_progress_callback(size_t current, size_t maximum, void * co
                 self.contentId = [NSString stringWithCString:mMimeFields->fld_id encoding:NSUTF8StringEncoding];
             }
             
+            if (mMimeFields->fld_disposition==NULL &&
+                [self isAttachmentButNoDisposition]) {
+                
+                struct mailmime_disposition * disposition;
+                struct mailmime_disposition_type * disposition_type;
+                clist * disposition_parms;
+                struct mailmime_disposition_parm * param;
+                
+                disposition_type =
+                mailmime_disposition_type_new(MAILMIME_DISPOSITION_TYPE_ATTACHMENT, NULL);
+                
+                disposition_parms = clist_new();
+                param = mailmime_disposition_parm_new(MAILMIME_DISPOSITION_PARM_FILENAME,
+                                                      strdup(mMimeFields->fld_content_name), NULL,
+                                                      NULL, NULL, -1, NULL);
+                clist_append(disposition_parms, param);
+                
+                disposition = mailmime_disposition_new(disposition_type, disposition_parms);
+                mMimeFields->fld_disposition = disposition;
+                
+                
+            }
+            
             struct mailmime_disposition *disp = mMimeFields->fld_disposition;
             if (disp != NULL) {
                 if (disp->dsp_type != NULL) {
@@ -226,6 +249,15 @@ static void download_progress_callback(size_t current, size_t maximum, void * co
         return mMime->mm_length;
     }
     return 0;
+}
+
+- (BOOL)isAttachmentButNoDisposition
+{
+    if (![[mContentType lowercaseString] isEqualToString:@"text/plain"] &&
+        ![[mContentType lowercaseString] isEqualToString:@"text/html"]) {
+        return YES;
+    }else
+        return NO;
 }
 
 
