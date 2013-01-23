@@ -92,7 +92,8 @@ static void download_progress_callback(size_t current, size_t maximum, void * co
             }
             
             if (mMimeFields->fld_disposition==NULL &&
-                [self isAttachmentButNoDisposition]) {
+                [self isAttachmentButNoDisposition] &&
+                mMimeFields->fld_content_name != NULL) {
                 
                 struct mailmime_disposition * disposition;
                 struct mailmime_disposition_type * disposition_type;
