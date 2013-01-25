@@ -800,7 +800,7 @@
 	
     for(iter = clist_begin(list); iter != NULL; iter = clist_next(iter)) {
         string = clist_content(iter);
-        NSString *strObj = [[NSString alloc] initWithUTF8String:string];
+        NSString *strObj = MailCoreDecodeMIMEPhrase(strdup(string));
 		[stringSet addObject:strObj];
         [strObj release];
     }
