@@ -86,7 +86,7 @@ static const int MAX_PATH_SIZE = 1024;
 
 
 - (const char *)getUTF7String:(char *)buffer fromString:(NSString *)str {
-    if (CFStringGetCString((CFStringRef)str, buffer, MAX_PATH_SIZE, kCFStringEncodingUTF7_IMAP)) {
+    if (CFStringGetCString((CFStringRef)str, buffer, MAX_PATH_SIZE, kCFStringEncodingUTF8)) {
         return buffer;
     }
     else {
