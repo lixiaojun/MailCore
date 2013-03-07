@@ -802,7 +802,7 @@
         string = clist_content(iter);
         NSString *strObj = MailCoreDecodeMIMEPhrase(strdup(string));
 		[stringSet addObject:strObj];
-        [strObj release];
+//        [strObj release];
     }
 	
     return stringSet;
