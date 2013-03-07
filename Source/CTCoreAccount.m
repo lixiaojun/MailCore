@@ -252,7 +252,7 @@
         if (selectable) {
             mailboxName = mailboxStruct->mb_name;
             // Per RFC 3501, mailbox names must use 7-bit enconding (UTF-7).
-            mailboxNameObject = (NSString *)CFStringCreateWithCString(NULL, mailboxName, kCFStringEncodingUTF8);
+            mailboxNameObject = (NSString *)CFStringCreateWithCString(NULL, mailboxName, kCFStringEncodingUTF7_IMAP);
             
             if (mailboxStruct->mb_delimiter) {
                 self.pathDelimiter = [NSString stringWithFormat:@"%c", mailboxStruct->mb_delimiter];
