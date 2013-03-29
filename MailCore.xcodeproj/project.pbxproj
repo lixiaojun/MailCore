@@ -50,6 +50,7 @@
 		F81E266F0C6ED4E100B3FBAC /* CTCoreAttachment.m in Sources */ = {isa = PBXBuildFile; fileRef = F81E266D0C6ED4E100B3FBAC /* CTCoreAttachment.m */; };
 		F8245A6D0C041C8C005E08A8 /* CTMIMEFactory.h in Headers */ = {isa = PBXBuildFile; fileRef = F8245A2F0C04089D005E08A8 /* CTMIMEFactory.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F8245A700C041C91005E08A8 /* CTMIMEFactory.m in Sources */ = {isa = PBXBuildFile; fileRef = F8245A300C04089D005E08A8 /* CTMIMEFactory.m */; };
+		F82AA54116F26F2300BF76A8 /* CTXlistResult.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F369D01162DF5030043A3ED /* CTXlistResult.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F8430BB10C72B16000753941 /* CTMIME_Enumerator.h in Headers */ = {isa = PBXBuildFile; fileRef = F8430BAF0C72B16000753941 /* CTMIME_Enumerator.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F8430BB20C72B16000753941 /* CTMIME_Enumerator.m in Sources */ = {isa = PBXBuildFile; fileRef = F8430BB00C72B16000753941 /* CTMIME_Enumerator.m */; };
 		F8483E4109CE7B9000B80440 /* libssl.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F8483E4009CE7B9000B80440 /* libssl.dylib */; };
@@ -123,6 +124,7 @@
 		F8EC5B0514C37F60006AF4D3 /* CTMIME_HtmlPart.m in Sources */ = {isa = PBXBuildFile; fileRef = F8EC5B0214C37F60006AF4D3 /* CTMIME_HtmlPart.m */; };
 		F8EC5B0514C37F60006AF4D5 /* CTConnectedTest.m in Sources */ = {isa = PBXBuildFile; fileRef = F8EC5B0514C37F60006AF4D4 /* CTConnectedTest.m */; };
 		F8EC5B0514C37F60006AF4D8 /* CTCoreFolderTests.m in Sources */ = {isa = PBXBuildFile; fileRef = F8EC5B0514C37F60006AF4D7 /* CTCoreFolderTests.m */; };
+		F9FC3A731683FC07004B2D1E /* TestData in Resources */ = {isa = PBXBuildFile; fileRef = F9FC3A721683FC07004B2D1E /* TestData */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -307,6 +309,7 @@
 		F8EC5B0514C37F60006AF4D6 /* CTConnectedTest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CTConnectedTest.h; path = Tests/CTConnectedTest.h; sourceTree = "<group>"; };
 		F8EC5B0514C37F60006AF4D7 /* CTCoreFolderTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = CTCoreFolderTests.m; path = Tests/CTCoreFolderTests.m; sourceTree = "<group>"; };
 		F8EC5B0514C37F60006AF4D9 /* CTCoreFolderTests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CTCoreFolderTests.h; path = Tests/CTCoreFolderTests.h; sourceTree = "<group>"; };
+		F9FC3A721683FC07004B2D1E /* TestData */ = {isa = PBXFileReference; lastKnownFileType = folder; path = TestData; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -368,6 +371,7 @@
 				F888632D158102F50088CF38 /* Cyrus SASL.xcodeproj */,
 				F890D38D10CEECD50039817C /* libetpan.xcodeproj */,
 				F85A18AF09C7D8F200305C06 /* Tests */,
+				F9FC3A721683FC07004B2D1E /* TestData */,
 				08FB77AEFE84172EC02AAC07 /* Classes */,
 				32C88DFF0371C24200C91783 /* Other Sources */,
 				089C1665FE841158C02AAC07 /* Resources */,
@@ -636,6 +640,7 @@
 				F86B542314F476170080FB8F /* CTSMTPConnection.h in Headers */,
 				F86B542414F4761C0080FB8F /* CTSMTPAsyncConnection.h in Headers */,
 				F86B542514F4761E0080FB8F /* CTSMTP.h in Headers */,
+				F82AA54116F26F2300BF76A8 /* CTXlistResult.h in Headers */,
 				F86B542614F476200080FB8F /* CTESMTP.h in Headers */,
 				183082DA169EAD6E005F1084 /* GTMBase64.h in Headers */,
 				183082DE169EAD6E005F1084 /* GTMDefines.h in Headers */,
@@ -808,6 +813,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F8DFCF5615801A5000C01975 /* InfoPlist.strings in Resources */,
+				F9FC3A731683FC07004B2D1E /* TestData in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1139,7 +1145,7 @@
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				INFOPLIST_FILE = "Tests/Tests-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 5.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/iOSPorts/ports/security/cyrus-sasl/build/Debug-iphoneos\"",
@@ -1166,7 +1172,7 @@
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				INFOPLIST_FILE = "Tests/Tests-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 5.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/iOSPorts/ports/security/cyrus-sasl/build/Debug-iphoneos\"",
