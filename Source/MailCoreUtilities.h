@@ -52,3 +52,7 @@ NSError* MailCoreCreateErrorFromSMTPCode(int errcode);
 
 NSString *MailCoreDecodeMIMEPhrase(char *data);
 const char *MailCoreEncodeMIMEPhrase(NSString *data);
+
+NSArray * MailCoreStringArrayFromClist(clist *list);
+clist *MailCoreClistFromStringArray(NSArray *strings);
+
