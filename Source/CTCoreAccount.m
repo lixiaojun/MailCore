@@ -284,7 +284,7 @@
     
     //Now, fill the all folders array
     //TODO Fix this so it doesn't use *
-    err = mailimap_xlist([self session], "", "*", &allList);
+    err = mailimap_list([self session], "", "*", &allList);
     if (err != MAILIMAP_NO_ERROR) {
         self.lastError = MailCoreCreateErrorFromIMAPCode(err);
         return nil;
@@ -328,5 +328,134 @@
     }
     mailimap_list_result_free(allList);
     return allFolders;
+}
+
+- (NSSet *)allFoldersExtendedWithXList {
+    struct mailimap_mailbox_list * mailboxStruct;
+    struct mailimap_mbx_list_oflag * oflagStruct;
+    clist *allList;
+    clistiter *cur, *flagIter;
+    
+    NSString *mailboxNameObject;
+    char *mailboxName;
+    NSString *flagNameObject;
+    char *flagName;
+    int err;
+    
+    NSMutableSet *allFolders = [NSMutableSet set];
+    CTXlistResult *listResult;
+    
+    //Now, fill the all folders array
+    //TODO Fix this so it doesn't use *
+    err = mailimap_list([self session], "", "*", &allList);
+    if (err != MAILIMAP_NO_ERROR) {
+        self.lastError = MailCoreCreateErrorFromIMAPCode(err);
+        return nil;
+    }
+    for(cur = clist_begin(allList); cur != NULL; cur = cur->next)
+    {
+        mailboxStruct = cur->data;
+        struct mailimap_mbx_list_flags *flags = mailboxStruct->mb_flag;
+        BOOL selectable = YES;
+        if (flags) {
+            selectable = !(flags->mbf_type==MAILIMAP_MBX_LIST_FLAGS_SFLAG && flags->mbf_sflag==MAILIMAP_MBX_LIST_SFLAG_NOSELECT);
+        }
+        if (selectable) {
+            mailboxName = mailboxStruct->mb_name;
+            // Per RFC 3501, mailbox names must use 7-bit enconding (UTF-7).
+            mailboxNameObject = (NSString *)CFStringCreateWithCString(NULL, mailboxName, kCFStringEncodingUTF7_IMAP);
+            
+            if (mailboxStruct->mb_delimiter) {
+                self.pathDelimiter = [NSString stringWithFormat:@"%c", mailboxStruct->mb_delimiter];
+            } else {
+                self.pathDelimiter = @"/";
+            }
+            
+            listResult = [[CTXlistResult alloc] init];
+            [listResult setName:mailboxNameObject];
+            [mailboxNameObject release];
+            
+            if (flags) {
+                for (flagIter = clist_begin(flags->mbf_oflags); flagIter != NULL; flagIter = flagIter->next) {
+                    oflagStruct = flagIter->data;
+                    flagName = oflagStruct->of_flag_ext;
+                    flagNameObject = (NSString *)CFStringCreateWithCString(NULL, flagName, kCFStringEncodingUTF7_IMAP);
+                    [listResult addFlag:flagNameObject];
+                    [flagNameObject release];
+                }
+            }
+            
+            [allFolders addObject:listResult];
+            [listResult release];
+        }
+    }
+    mailimap_list_result_free(allList);
+    return allFolders;
+}
+
+- (BOOL)noop
+{
+    int err;
+    err = mailimap_noop([self session]);
+    if (err!=MAILIMAP_NO_ERROR) {
+        self.lastError = MailCoreCreateErrorFromIMAPCode(err);
+        return NO;
+    }
+    
+    return YES;
+}
+
+- (NSUInteger)messageCountForFolder:(NSString *)path
+{
+    return [self statusInfoForFolder:path statusAtt:MAILIMAP_STATUS_ATT_MESSAGES];
+}
+
+- (NSUInteger)uidValidityForFolder:(NSString *)path
+{
+    return [self statusInfoForFolder:path statusAtt:MAILIMAP_STATUS_ATT_UIDVALIDITY];
+}
+
+- (NSUInteger)uidNextForFolder:(NSString *)path
+{
+    return [self statusInfoForFolder:path statusAtt:MAILIMAP_STATUS_ATT_UIDNEXT];
+}
+
+- (NSUInteger)statusInfoForFolder:(NSString *)path statusAtt:(int)att
+{
+    struct mailimap_mailbox_data_status *status_result;
+    struct mailimap_status_att_list *att_list;
+    struct mailimap_status_info *info;
+    clistiter *cur;
+    
+    NSUInteger status = 0;
+    int err;
+    
+    att_list = mailimap_status_att_list_new_empty();
+    mailimap_status_att_list_add(att_list, att);
+    
+    char buffer[MAX_PATH_SIZE];
+    MailCoreGetUTF7String(buffer, path);
+    
+    err = mailimap_status([self session], buffer, att_list, &status_result);
+    if (err==MAIL_NO_ERROR) {
+        if (status_result->st_info_list!=NULL) {
+            for(cur = clist_begin(status_result->st_info_list); cur != NULL; cur = cur->next) {
+                info = cur->data;
+                if (info->st_att == att) {
+                    status = info->st_value;
+                    break;
+                }
+            }
+            mailimap_mailbox_data_status_free(status_result);
+        }
+        
+    }else{
+        self.lastError = MailCoreCreateErrorFromIMAPCode(err);
+    }
+    
+    mailimap_status_att_list_free(att_list);
+    
+    return status;
+    
 }
 @end

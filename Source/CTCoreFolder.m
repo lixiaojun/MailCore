@@ -49,7 +49,6 @@ int uid_list_to_env_list(clist * fetch_result, struct mailmessage_list ** result
 @interface CTCoreFolder ()
 @end
 
-static const int MAX_PATH_SIZE = 1024;
 
 @implementation CTCoreFolder
 @synthesize lastError, parentAccount=myAccount, idling;
@@ -86,12 +85,7 @@ static const int MAX_PATH_SIZE = 1024;
 
 
 - (const char *)getUTF7String:(char *)buffer fromString:(NSString *)str {
-    if (CFStringGetCString((CFStringRef)str, buffer, MAX_PATH_SIZE, kCFStringEncodingUTF7_IMAP)) {
-        return buffer;
-    }
-    else {
-        return NULL;
-    }
+    return MailCoreGetUTF7String(buffer, str);
 }
 
 

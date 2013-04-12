@@ -61,11 +61,17 @@
 - (NSSet *)allFolders;
 
 /**
+ Retrieves the list of all the available folders from the server using the extended list command (LIST).
+ @return Returns a NSSet which contains CTXlistResults, nil on error
+ */
+- (NSSet *)allFoldersExtended;
+
+/**
  Retrieves the list of all the available folders from the server using the extended list command (XLIST).
  This is only supported by Gmail.
  @return Returns a NSSet which contains CTXlistResults, nil on error
  */
-- (NSSet *)allFoldersExtended;
+- (NSSet *)allFoldersExtendedWithXList;
 
 /**
  Retrieves a list of only the subscribed folders from the server.
@@ -79,6 +85,30 @@
  @return Returns a CTCoreFolder.
 */
 - (CTCoreFolder *)folderWithPath:(NSString *)path;
+
+/**
+ The NOOP command can also be used to reset any inactivity autologout timer on the server.
+ @return true or false.It does nothing.
+ */
+- (BOOL)noop;
+
+/**
+ The STATUS command. This method returns message count in folder. 
+ @param path The path of folder.
+ */
+- (NSUInteger)messageCountForFolder:(NSString *)path;
+
+/**
+ The STATUS command. This method returns folder's uidValidity.
+ @param path The path of folder.
+ */
+- (NSUInteger)uidValidityForFolder:(NSString *)path;
+
+/**
+ The STATUS command. This method returns folder's uidnext.
+ @param path The folder's path.
+ */
+- (NSUInteger)uidNextForFolder:(NSString *)path;
 
 /**
  This method initiates the connection to the server.

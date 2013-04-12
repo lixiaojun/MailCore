@@ -32,6 +32,8 @@
 #import <Foundation/Foundation.h>
 #import <libetpan/libetpan.h>
 
+static const int MAX_PATH_SIZE = 1024;
+
 /**
      Enables logging of all streams, data is output to standard out.
 */
@@ -52,6 +54,8 @@ NSError* MailCoreCreateErrorFromSMTPCode(int errcode);
 
 NSString *MailCoreDecodeMIMEPhrase(char *data);
 const char *MailCoreEncodeMIMEPhrase(NSString *data);
+
+const char *MailCoreGetUTF7String(char *buffer, NSString *fromStr);
 
 NSArray * MailCoreStringArrayFromClist(clist *list);
 clist *MailCoreClistFromStringArray(NSArray *strings);

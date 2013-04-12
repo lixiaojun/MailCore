@@ -312,6 +312,15 @@ const char *MailCoreEncodeMIMEPhrase(NSString *data) {
     
 }
 
+const char *MailCoreGetUTF7String(char *buffer, NSString *fromStr) {
+    if (CFStringGetCString((CFStringRef)fromStr, buffer, MAX_PATH_SIZE, kCFStringEncodingUTF7_IMAP)) {
+        return buffer;
+    }
+    else {
+        return NULL;
+    }
+}
+
 NSArray * MailCoreStringArrayFromClist(clist *list) {
   clistiter *iter;
   NSMutableArray *stringSet = [NSMutableArray array];
