@@ -689,6 +689,93 @@ int uid_list_to_env_list(clist * fetch_result, struct mailmessage_list ** result
     return msg;
 }
 
+//Only fetch uid and SequenceNumber
+- (NSArray *)messagesFromUID:(NSUInteger)startUID to:(NSUInteger)endUID
+{
+    struct mailimap_set *set = mailimap_set_new_interval(startUID, endUID);
+    
+    BOOL success = [self connect];
+    if (!success) {
+        return nil;
+    }
+    
+    NSMutableArray *messages = [NSMutableArray array];
+    
+    int r;
+    struct mailimap_fetch_att * fetch_att;
+    struct mailimap_fetch_type * fetch_type;
+    struct mailmessage_list * env_list;
+    
+    clist * fetch_result;
+    
+    fetch_type = mailimap_fetch_type_new_fetch_att_list_empty();
+    //fetch UID
+    fetch_att = mailimap_fetch_att_new_uid();
+    r = mailimap_fetch_type_new_fetch_att_list_add(fetch_type, fetch_att);
+    if (r != MAILIMAP_NO_ERROR) {
+        mailimap_fetch_att_free(fetch_att);
+        mailimap_fetch_type_free(fetch_type);
+        self.lastError = MailCoreCreateErrorFromIMAPCode(r);
+        return nil;
+    }
+    
+    r = mailimap_uid_fetch([self imapSession], set, fetch_type, &fetch_result);
+    if (r != MAIL_NO_ERROR) {
+        self.lastError = MailCoreCreateErrorFromIMAPCode(r);
+        return nil;
+    }
+    
+    mailimap_fetch_type_free(fetch_type);
+    mailimap_set_free(set);
+    
+    env_list = NULL;
+    r = uid_list_to_env_list(fetch_result, &env_list, [self folderSession], imap_message_driver);
+    if (r != MAIL_NO_ERROR) {
+        self.lastError = MailCoreCreateErrorFromIMAPCode(r);
+        return nil;
+    }
+    r = imap_fetch_result_to_envelop_list(fetch_result, env_list);
+    if (r != MAIL_NO_ERROR) {
+        self.lastError = MailCoreCreateErrorFromIMAPCode(r);
+        return nil;
+    }
+    
+    int len = carray_count(env_list->msg_tab);
+    
+    clistiter *fetchResultIter = clist_begin(fetch_result);
+    for(int i=0; i<len; i++) {
+        struct mailimf_fields * fields = NULL;
+        
+        struct mailmessage * msg = carray_get(env_list->msg_tab, i);
+        struct mailimap_msg_att *msg_att = (struct mailimap_msg_att *)clist_content(fetchResultIter);
+        if (msg_att == nil) {
+            self.lastError = MailCoreCreateErrorFromIMAPCode(MAIL_ERROR_MEMORY);
+            return nil;
+        }
+        
+        CTCoreMessage* msgObject = [[CTCoreMessage alloc] initWithMessageStruct:msg];
+        msgObject.parentFolder = self;
+        [msgObject setSequenceNumber:msg_att->att_number];
+        if (fields != NULL) {
+            [msgObject setFields:fields];
+        }
+        [messages addObject:msgObject];
+        [msgObject release];
+        
+        fetchResultIter = clist_next(fetchResultIter);
+    }
+    
+    if (env_list != NULL) {
+        //I am only freeing the message array because the messages themselves are in use
+        carray_free(env_list->msg_tab);
+        free(env_list);
+    }
+    mailimap_fetch_list_free(fetch_result);
+    
+    return messages;
+    
+}
+
 /*	Why are flagsForMessage: and setFlags:forMessage: in CTCoreFolder instead of CTCoreMessage?
     One word: dependencies. These methods rely on CTCoreFolder and CTCoreMessage to do their work,
     if they were included with CTCoreMessage, than a reference to the folder would have to be kept at

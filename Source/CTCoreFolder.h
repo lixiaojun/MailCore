@@ -87,6 +87,11 @@
 - (CTCoreMessage *)messageWithUID:(NSUInteger)uid;
 
 /**
+ This method uses UID ranges to determine which messages to download, it will only fetch uid.
+ */
+- (NSArray *)messagesFromUID:(NSUInteger)startUID to:(NSUInteger)endUID;
+
+/**
  Use this method to download message lists from the server.
  
  This method take fetch attributes which configure what is fetched. Fetch attributes can be combined
