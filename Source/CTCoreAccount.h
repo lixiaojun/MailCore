@@ -94,21 +94,17 @@
 
 /**
  The STATUS command. This method returns message count in folder. 
- @param path The path of folder.
+ @param folder The path of folder.
+ @return Returns a NSDictionary which contains the numbers of MESSAGES, UIDVALIDITY, UIDNEXT, RECENT, UNSEEN
  */
-- (NSUInteger)messageCountForFolder:(NSString *)path;
+- (NSDictionary *)statusInFolder:(NSString *)folder;
 
 /**
- The STATUS command. This method returns folder's uidValidity.
- @param path The path of folder.
+ The STATUS command. This method returns message count in folder.
+ @param folder The path of folder.
+ @return Returns the numbers of speical item(MESSAGES, UIDVALIDITY, UIDNEXT, RECENT, UNSEEN)
  */
-- (NSUInteger)uidValidityForFolder:(NSString *)path;
-
-/**
- The STATUS command. This method returns folder's uidnext.
- @param path The folder's path.
- */
-- (NSUInteger)uidNextForFolder:(NSString *)path;
+- (NSUInteger)statusInFolder:(NSString *)folder att:(int)att;
 
 /**
  This method initiates the connection to the server.

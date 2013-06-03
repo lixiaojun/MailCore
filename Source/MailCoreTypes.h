@@ -88,3 +88,23 @@ typedef enum
     CTSMTPAsyncCanceled = 1,
     CTSMTPAsyncError = 2
 } CTSMTPAsyncStatus;
+
+/** Folder Flags **/
+
+typedef enum {
+    CTIMAPFolderFlagNone        = 0,
+    CTIMAPFolderFlagMarked      = 1 << 0,
+    CTIMAPFolderFlagUnmarked    = 1 << 1,
+    CTIMAPFolderFlagNoSelect    = 1 << 2,
+    CTIMAPFolderFlagNoInferiors = 1 << 3,
+    CTIMAPFolderFlagInbox       = 1 << 4,
+    CTIMAPFolderFlagSentMail    = 1 << 5,
+    CTIMAPFolderFlagStarred     = 1 << 6,
+    CTIMAPFolderFlagAllMail     = 1 << 7,
+    CTIMAPFolderFlagTrash       = 1 << 8,
+    CTIMAPFolderFlagDrafts      = 1 << 9,
+    CTIMAPFolderFlagSpam        = 1 << 10,
+    CTIMAPFolderFlagImportant   = 1 << 11,
+    CTIMAPFolderFlagArchive     = 1 << 12,
+    
+} CTIMAPFolderFlag;

@@ -34,8 +34,11 @@
 @interface CTXlistResult : NSObject
 
 @property (nonatomic, retain) NSString *name;
+@property (nonatomic, retain) NSString *delimiter;
 @property (nonatomic, strong, readonly) NSArray *flags;
+@property NSUInteger folderFlags;
 
 - (void)addFlag:(NSString *)flag;
+- (void)setFolderFlags:(NSUInteger)flags;
 
 @end

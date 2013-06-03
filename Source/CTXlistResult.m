@@ -36,13 +36,15 @@
     NSMutableArray *_flags;
 }
 
-@synthesize name, flags = _flags;
+@synthesize name, flags = _flags, folderFlags, delimiter;
 
 - (id)init
 {
     self = [super init];
     if (self) {
         _flags = [[NSMutableArray alloc] init];
+        self.folderFlags = 0;
+        self.delimiter = @"";
     }
     return self;
 }

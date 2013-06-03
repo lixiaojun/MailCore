@@ -293,11 +293,18 @@
     {
         mailboxStruct = cur->data;
         struct mailimap_mbx_list_flags *flags = mailboxStruct->mb_flag;
-        BOOL selectable = YES;
+        CTIMAPFolderFlag ctFlags;
         if (flags) {
-            selectable = !(flags->mbf_type==MAILIMAP_MBX_LIST_FLAGS_SFLAG && flags->mbf_sflag==MAILIMAP_MBX_LIST_SFLAG_NOSELECT);
-        }
-        if (selectable) {
+            listResult = [[CTXlistResult alloc] init];
+            ctFlags = (CTIMAPFolderFlag)imap_mailbox_flags_to_flags(flags);
+            for (flagIter = clist_begin(flags->mbf_oflags); flagIter != NULL; flagIter = flagIter->next) {
+                oflagStruct = flagIter->data;
+                flagName = oflagStruct->of_flag_ext;
+                flagNameObject = (NSString *)CFStringCreateWithCString(NULL, flagName, kCFStringEncodingUTF7_IMAP);
+                [listResult addFlag:flagNameObject];
+                [flagNameObject release];
+            }
+            
             mailboxName = mailboxStruct->mb_name;
             // Per RFC 3501, mailbox names must use 7-bit enconding (UTF-7).
             mailboxNameObject = (NSString *)CFStringCreateWithCString(NULL, mailboxName, kCFStringEncodingUTF7_IMAP);
@@ -308,22 +315,10 @@
                 self.pathDelimiter = @"/";
             }
             
-            listResult = [[CTXlistResult alloc] init];
             [listResult setName:mailboxNameObject];
+            [listResult setDelimiter:self.pathDelimiter];
+            [listResult setFolderFlags:ctFlags];
             [mailboxNameObject release];
-            
-            if (flags) {
-                for (flagIter = clist_begin(flags->mbf_oflags); flagIter != NULL; flagIter = flagIter->next) {
-                    oflagStruct = flagIter->data;
-                    flagName = oflagStruct->of_flag_ext;
-                    if (oflagStruct->of_type==MAILIMAP_MBX_LIST_OFLAG_FLAG_EXT && flagName!=NULL) {
-                        flagNameObject = (NSString *)CFStringCreateWithCString(NULL, flagName, kCFStringEncodingUTF7_IMAP);
-                        [listResult addFlag:flagNameObject];
-                        [flagNameObject release];
-                    }
-                    
-                }
-            }
             
             [allFolders addObject:listResult];
             [listResult release];
@@ -400,30 +395,18 @@
 {
     int err;
     err = mailimap_noop([self session]);
-    if (err!=MAILIMAP_NO_ERROR) {
+    if (err==MAILIMAP_NO_ERROR ||
+        err==MAILIMAP_ERROR_STREAM) {
+        return YES;
+        
+    }else{
         self.lastError = MailCoreCreateErrorFromIMAPCode(err);
         return NO;
+        
     }
-    
-    return YES;
 }
 
-- (NSUInteger)messageCountForFolder:(NSString *)path
-{
-    return [self statusInfoForFolder:path statusAtt:MAILIMAP_STATUS_ATT_MESSAGES];
-}
-
-- (NSUInteger)uidValidityForFolder:(NSString *)path
-{
-    return [self statusInfoForFolder:path statusAtt:MAILIMAP_STATUS_ATT_UIDVALIDITY];
-}
-
-- (NSUInteger)uidNextForFolder:(NSString *)path
-{
-    return [self statusInfoForFolder:path statusAtt:MAILIMAP_STATUS_ATT_UIDNEXT];
-}
-
-- (NSUInteger)statusInfoForFolder:(NSString *)path statusAtt:(int)att
+- (NSUInteger)statusInFolder:(NSString *)folder att:(int)att
 {
     struct mailimap_mailbox_data_status *status_result;
     struct mailimap_status_att_list *att_list;
@@ -437,7 +420,7 @@
     mailimap_status_att_list_add(att_list, att);
     
     char buffer[MAX_PATH_SIZE];
-    MailCoreGetUTF7String(buffer, path);
+    MailCoreGetUTF7String(buffer, folder);
     
     err = mailimap_status([self session], buffer, att_list, &status_result);
     if (err==MAIL_NO_ERROR) {
@@ -461,4 +444,129 @@
     return status;
     
 }
+
+- (NSDictionary *)statusInFolder:(NSString *)folder
+{
+    struct mailimap_mailbox_data_status *status_result;
+    struct mailimap_status_att_list *att_list;
+    struct mailimap_status_info *info;
+    clistiter *cur;
+    NSMutableDictionary *result;
+    
+    int err;
+    
+    att_list = mailimap_status_att_list_new_empty();
+    mailimap_status_att_list_add(att_list, MAILIMAP_STATUS_ATT_MESSAGES);
+    mailimap_status_att_list_add(att_list, MAILIMAP_STATUS_ATT_UIDNEXT);
+    mailimap_status_att_list_add(att_list, MAILIMAP_STATUS_ATT_UIDVALIDITY);
+    mailimap_status_att_list_add(att_list, MAILIMAP_STATUS_ATT_UNSEEN);
+    mailimap_status_att_list_add(att_list, MAILIMAP_STATUS_ATT_RECENT);
+    
+    char buffer[MAX_PATH_SIZE];
+    MailCoreGetUTF7String(buffer, folder);
+    
+    err = mailimap_status([self session], buffer, att_list, &status_result);
+    if (err==MAIL_NO_ERROR) {
+        if (status_result->st_info_list!=NULL) {
+            result = [[NSMutableDictionary alloc] init];
+            for(cur = clist_begin(status_result->st_info_list); cur != NULL; cur = cur->next) {
+                info = cur->data;
+                if (info!=NULL) {
+                    NSNumber *valueNum = [NSNumber numberWithUnsignedInt:info->st_value];
+                    switch (info->st_att) {
+                        case MAILIMAP_STATUS_ATT_MESSAGES:
+                            [result setValue:valueNum forKey:@"MESSAGES"];
+                            break;
+                        case MAILIMAP_STATUS_ATT_UIDVALIDITY:
+                            [result setValue:valueNum forKey:@"UIDVALIDITY"];
+                            break;
+                        case MAILIMAP_STATUS_ATT_UIDNEXT:
+                            [result setValue:valueNum forKey:@"UIDNEXT"];
+                            break;
+                        case MAILIMAP_STATUS_ATT_RECENT:
+                            [result setValue:valueNum forKey:@"RECENT"];
+                            break;
+                        case MAILIMAP_STATUS_ATT_UNSEEN:
+                            [result setValue:valueNum forKey:@"UNSEEN"];
+                            break;
+                            
+                        default:
+                            break;
+                    }
+                }
+            }
+            mailimap_mailbox_data_status_free(status_result);
+        }
+        
+    }else{
+        self.lastError = MailCoreCreateErrorFromIMAPCode(err);
+    }
+    
+    mailimap_status_att_list_free(att_list);
+    
+    return result;
+}
+
+static struct {
+    const char * name;
+    int flag;
+} mb_keyword_flag[] = {
+    {"Inbox",     CTIMAPFolderFlagInbox},
+    {"AllMail",   CTIMAPFolderFlagAllMail},
+    {"SentMail",  CTIMAPFolderFlagSentMail},
+    {"Spam",      CTIMAPFolderFlagSpam},
+    {"Starred",   CTIMAPFolderFlagStarred},
+    {"Trash",     CTIMAPFolderFlagTrash},
+    {"Important", CTIMAPFolderFlagImportant},
+    {"Drafts",    CTIMAPFolderFlagDrafts},
+    {"Archive",   CTIMAPFolderFlagArchive},
+    {"All",       CTIMAPFolderFlagAllMail},
+    {"Junk",      CTIMAPFolderFlagSpam},
+    {"Flagged",   CTIMAPFolderFlagStarred},
+};
+
+int imap_mailbox_flags_to_flags(struct mailimap_mbx_list_flags * imap_flags)
+{
+    int flags;
+    clistiter * cur;
+    
+    flags = 0;
+    if (imap_flags->mbf_type == MAILIMAP_MBX_LIST_FLAGS_SFLAG) {
+        switch (imap_flags->mbf_sflag) {
+            case MAILIMAP_MBX_LIST_SFLAG_MARKED:
+                flags |= CTIMAPFolderFlagMarked;
+                break;
+            case MAILIMAP_MBX_LIST_SFLAG_NOSELECT:
+                flags |= CTIMAPFolderFlagNoSelect;
+                break;
+            case MAILIMAP_MBX_LIST_SFLAG_UNMARKED:
+                flags |= CTIMAPFolderFlagUnmarked;
+                break;
+        }
+    }
+    
+    for(cur = clist_begin(imap_flags->mbf_oflags) ; cur != NULL ;
+        cur = clist_next(cur)) {
+        struct mailimap_mbx_list_oflag * oflag;
+        
+        oflag = (struct mailimap_mbx_list_oflag *) clist_content(cur);
+        
+        switch (oflag->of_type) {
+            case MAILIMAP_MBX_LIST_OFLAG_NOINFERIORS:
+                flags |= CTIMAPFolderFlagNoInferiors;
+                break;
+                
+            case MAILIMAP_MBX_LIST_OFLAG_FLAG_EXT:
+                for(unsigned int i = 0 ; i < sizeof(mb_keyword_flag) / sizeof(mb_keyword_flag[0]) ; i ++) {
+                    if (strcasecmp(mb_keyword_flag[i].name, oflag->of_flag_ext) == 0) {
+                        flags |= mb_keyword_flag[i].flag;
+                    }
+                }
+                break;
+        }
+    }
+    
+    return flags;
+}
+
 @end
