@@ -32,6 +32,8 @@
 #import <Foundation/Foundation.h>
 #import <libetpan/libetpan.h>
 
+#define MailCoreErrorDomain @"mailcore"
+
 static const int MAX_PATH_SIZE = 1024;
 
 /**
