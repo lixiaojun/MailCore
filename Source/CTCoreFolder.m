@@ -497,7 +497,18 @@ int uid_list_to_env_list(clist * fetch_result, struct mailmessage_list ** result
             return nil;
         }
     }
-
+    
+    if (attrs & CTFetchAttrXGmailLabels) {
+        fetch_att = mailimap_fetch_att_new_xgmlabels();
+        r = mailimap_fetch_type_new_fetch_att_list_add(fetch_type, fetch_att);
+        if (r != MAILIMAP_NO_ERROR) {
+            mailimap_fetch_att_free(fetch_att);
+            mailimap_fetch_type_free(fetch_type);
+            self.lastError = MailCoreCreateErrorFromIMAPCode(r);
+            return nil;
+        }
+    }
+    
     if (uidFetch) {
         r = mailimap_uid_fetch([self imapSession], set, fetch_type, &fetch_result);
     } else {
@@ -523,7 +534,7 @@ int uid_list_to_env_list(clist * fetch_result, struct mailmessage_list ** result
         return nil;
     }
 
-    // Parsing of MIME bodies
+    // Parsing of MIME bodies, xgmlabels
     int len = carray_count(env_list->msg_tab);
 
     clistiter *fetchResultIter = clist_begin(fetch_result);
@@ -597,6 +608,37 @@ int uid_list_to_env_list(clist * fetch_result, struct mailmessage_list ** result
                 return nil;
             }
         }
+        
+        clistiter * item_cur;
+        NSMutableArray * labels;
+        if (attrs & CTFetchAttrXGmailLabels) {
+            for(item_cur = clist_begin(msg_att->att_list); item_cur != NULL; item_cur = clist_next(item_cur)) {
+                struct mailimap_msg_att_item * att_item;
+                
+                att_item = clist_content(item_cur);
+                if (att_item->att_type == MAILIMAP_MSG_ATT_ITEM_EXTENSION) {
+                    struct mailimap_extension_data * ext_data;
+                    
+                    ext_data = att_item->att_data.att_extension_data;
+                    if (ext_data->ext_extension == &mailimap_extension_xgmlabels) {
+                        struct mailimap_msg_att_xgmlabels * cLabels;
+                        clistiter * cur;
+                        
+                        labels = [[NSMutableArray alloc] init];
+                        cLabels = (struct mailimap_msg_att_xgmlabels *) ext_data->ext_data;
+                        for(cur = clist_begin(cLabels->att_labels) ; cur != NULL ; cur = clist_next(cur)) {
+                            char * cLabel;
+                            NSString * label;
+                            
+                            cLabel = (char *) clist_content(cur);
+                            label = [NSString stringWithCString:cLabel encoding:NSUTF8StringEncoding];
+                            [labels addObject:label];
+                            [label release];
+                        }
+                    }
+                }
+            }
+        }
 
         CTCoreMessage* msgObject = [[CTCoreMessage alloc] initWithMessageStruct:msg];
         msgObject.parentFolder = self;
@@ -606,6 +648,9 @@ int uid_list_to_env_list(clist * fetch_result, struct mailmessage_list ** result
         }
         if (attrs & CTFetchAttrBodyStructure) {
             [msgObject setBodyStructure:new_body];
+        }
+        if (attrs & CTFetchAttrXGmailLabels) {
+            [msgObject setXGmailLabels:labels];
         }
         [messages addObject:msgObject];
         [msgObject release];
@@ -892,6 +937,173 @@ int uid_list_to_env_list(clist * fetch_result, struct mailmessage_list ** result
     return YES;
 }
 
+- (BOOL)storeFlags:(NSIndexSet *)uids requestKind:(IMAPStoreFlagsRequestKind)kind flags:(NSUInteger)flags
+{
+    struct mailimap_set *imap_set;
+    struct mailimap_store_att_flags *store_att_flags;
+    struct mailimap_flag_list *flag_list;
+    int err;
+    clist *setList;
+    
+    BOOL success = [self connect];
+    if (!success)
+        return success;
+    
+    success = NO;
+    
+    imap_set = mailimap_set_new_empty();
+    [uids enumerateRangesUsingBlock:^(NSRange range, BOOL *stop) {
+        mailimap_set_add_interval(imap_set, range.location, range.location + range.length - 1);
+    }];
+    if (clist_count(imap_set->set_list) == 0) {
+        return NO;
+    }
+    
+    setList = splitSet(imap_set, 10);
+    
+    flag_list = mailimap_flag_list_new_empty();
+    if ((flags & MAIL_FLAG_SEEN) != 0) {
+        struct mailimap_flag * f;
+        
+        f = mailimap_flag_new_seen();
+        mailimap_flag_list_add(flag_list, f);
+        
+    }
+    if ((flags & MAIL_FLAG_ANSWERED) != 0) {
+        struct mailimap_flag * f;
+        
+        f = mailimap_flag_new_answered();
+        mailimap_flag_list_add(flag_list, f);
+    }
+    if ((flags & MAIL_FLAG_FORWARDED) != 0) {
+        struct mailimap_flag * f;
+        
+        f = mailimap_flag_new_flagged();
+        mailimap_flag_list_add(flag_list, f);
+    }
+    if ((flags & MAIL_FLAG_DELETED) != 0) {
+        struct mailimap_flag * f;
+        
+        f = mailimap_flag_new_deleted();
+        mailimap_flag_list_add(flag_list, f);
+    }
+    
+    store_att_flags = NULL;
+    for(clistiter * iter = clist_begin(setList) ; iter != NULL ; iter = clist_next(iter)) {
+        struct mailimap_set * current_set;
+        
+        current_set = (struct mailimap_set *) clist_content(iter);
+        
+        switch (kind) {
+            case IMAPStoreFlagsRequestKindRemove:
+                store_att_flags = mailimap_store_att_flags_new_remove_flags_silent(flag_list);
+                break;
+            case IMAPStoreFlagsRequestKindAdd:
+                store_att_flags = mailimap_store_att_flags_new_add_flags_silent(flag_list);
+                break;
+            case IMAPStoreFlagsRequestKindSet:
+                store_att_flags = mailimap_store_att_flags_new_set_flags_silent(flag_list);
+                break;
+        }
+        err = mailimap_uid_store([self imapSession], current_set, store_att_flags);
+        if (err != MAILIMAP_NO_ERROR) {
+            self.lastError = MailCoreCreateErrorFromIMAPCode(err);
+            success = NO;
+            goto release;
+        }
+        else{
+            self.lastError = nil;
+            success = YES;
+        }
+    }
+    
+    release:
+    for(clistiter * iter = clist_begin(setList) ; iter != NULL ; iter = clist_next(iter)) {
+        struct mailimap_set * current_set;
+        
+        current_set = (struct mailimap_set *) clist_content(iter);
+        mailimap_set_free(current_set);
+    }
+    clist_free(setList);
+    mailimap_store_att_flags_free(store_att_flags);
+    mailimap_set_free(imap_set);
+    
+    return success;
+    
+}
+
+- (BOOL)storeLabels:(NSIndexSet *)uids requestKind:(IMAPStoreFlagsRequestKind)kind labels:(NSArray *)labels
+{
+    struct mailimap_set * imap_set;
+    struct mailimap_msg_att_xgmlabels * xgmlabels;
+    int err;
+    clist * setList;
+    
+    BOOL success = [self connect];
+    if (!success)
+        return success;
+    
+    success = NO;
+    
+    imap_set = mailimap_set_new_empty();
+    [uids enumerateRangesUsingBlock:^(NSRange range, BOOL *stop) {
+        mailimap_set_add_interval(imap_set, range.location, range.location + range.length - 1);
+    }];
+    if (clist_count(imap_set->set_list) == 0) {
+        return NO;
+    }
+    
+    setList = splitSet(imap_set, 10);
+    
+    xgmlabels = mailimap_msg_att_xgmlabels_new_empty();
+    for(unsigned int i = 0 ; i < [labels count] ; i ++) {
+        NSString * label = [labels objectAtIndex:i];
+        mailimap_msg_att_xgmlabels_add(xgmlabels, strdup([label cStringUsingEncoding:NSUTF8StringEncoding]));
+    }
+    
+    for(clistiter * iter = clist_begin(setList) ; iter != NULL ; iter = clist_next(iter)) {
+        struct mailimap_set * current_set;
+        int fl_sign;
+        
+        current_set = (struct mailimap_set *) clist_content(iter);
+        
+        switch (kind) {
+            case IMAPStoreFlagsRequestKindRemove:
+                fl_sign = -1;
+                break;
+            case IMAPStoreFlagsRequestKindAdd:
+                fl_sign = 1;
+                break;
+            case IMAPStoreFlagsRequestKindSet:
+                fl_sign = 0;
+                break;
+        }
+        err = mailimap_uid_store_xgmlabels([self imapSession], current_set, fl_sign, 1, xgmlabels);
+        if (err != MAILIMAP_NO_ERROR) {
+            self.lastError = MailCoreCreateErrorFromIMAPCode(err);
+            success = NO;
+            goto release;
+        }
+        else{
+            self.lastError = nil;
+            success = YES;
+        }
+    }
+    
+    release:
+    for(clistiter * iter = clist_begin(setList) ; iter != NULL ; iter = clist_next(iter)) {
+        struct mailimap_set * current_set;
+        
+        current_set = (struct mailimap_set *) clist_content(iter);
+        mailimap_set_free(current_set);
+    }
+    clist_free(setList);
+    mailimap_msg_att_xgmlabels_free(xgmlabels);
+    mailimap_set_free(imap_set);
+    return success;
+    
+}
+
 - (BOOL)expunge {
     int err;
     BOOL success = [self connect];
@@ -1069,5 +1281,39 @@ int uid_list_to_env_list(clist * fetch_result, struct mailmessage_list ** result
         return res;
 }
 
+//export from mailcore2
+static clist * splitSet(struct mailimap_set * set, unsigned int splitCount)
+{
+    struct mailimap_set * current_set;
+    clist * result;
+    unsigned int count;
+    
+    result = clist_new();
+    
+    current_set = NULL;
+    count = 0;
+    for(clistiter * iter = clist_begin(set->set_list) ; iter != NULL ; iter = clist_next(iter)) {
+        struct mailimap_set_item * item;
+        
+        if (current_set == NULL) {
+            current_set = mailimap_set_new_empty();
+        }
+        
+        item = (struct mailimap_set_item *) clist_content(iter);
+        mailimap_set_add_interval(current_set, item->set_first, item->set_last);
+        count ++;
+        
+        if (count >= splitCount) {
+            clist_append(result, current_set);
+            current_set = NULL;
+            count = 0;
+        }
+    }
+    if (current_set != NULL) {
+        clist_append(result, current_set);
+    }
+    
+    return result;
+}
 
 @end

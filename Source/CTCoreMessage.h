@@ -57,6 +57,7 @@ typedef enum {
     NSError *lastError;
     CTCoreFolder *parentFolder;
     CTCoreMessagePriority mailPriority;
+    NSArray *xGmailLabels;
 }
 /**
  If an error occurred (nil or return of NO) call this method to get the error
@@ -358,6 +359,17 @@ typedef enum {
  Support for Mail Prioirty header defined in IMAP 4021 and X-Prioirty header.
  */
 - (void)setMailPriority:(CTCoreMessagePriority)priority;
+
+/**
+ Returns gmail labels
+ This is only supported by Gmail.
+ */
+- (NSArray *)xGmailLabels;
+
+/**
+ Sets the gmail labels
+ */
+- (void)setXGmailLabels:(NSArray *)labels;
 
 /* Intended for advanced use only */
 - (struct mailmessage *)messageStruct;

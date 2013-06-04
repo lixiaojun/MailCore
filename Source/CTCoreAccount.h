@@ -102,6 +102,7 @@
 /**
  The STATUS command. This method returns message count in folder.
  @param folder The path of folder.
+ @param att The attribute of status
  @return Returns the numbers of speical item(MESSAGES, UIDVALIDITY, UIDNEXT, RECENT, UNSEEN)
  */
 - (NSUInteger)statusInFolder:(NSString *)folder att:(int)att;

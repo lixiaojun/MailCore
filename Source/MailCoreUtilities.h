@@ -55,10 +55,15 @@ NSError* MailCoreCreateErrorFromIMAPCode(int errcode);
 NSError* MailCoreCreateErrorFromSMTPCode(int errcode);
 
 NSString *MailCoreDecodeMIMEPhrase(char *data);
+
+/**
+    Encode a string to encoded word. encoded-word ("=?UTF-8?B?encoded-text?=")
+ */
 const char *MailCoreEncodeMIMEPhrase(NSString *data);
 
 const char *MailCoreGetUTF7String(char *buffer, NSString *fromStr);
 
 NSArray * MailCoreStringArrayFromClist(clist *list);
+
 clist *MailCoreClistFromStringArray(NSArray *strings);
 

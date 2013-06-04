@@ -40,6 +40,7 @@ typedef enum {
     CTFetchAttrDefaultsOnly     = 0,
     CTFetchAttrBodyStructure    = 1 << 0,
     CTFetchAttrEnvelope         = 1 << 1,
+    CTFetchAttrXGmailLabels     = 1 << 2, //Only supported by Gmail
 } CTFetchAttributes;
 
 /** Constants for IDLE **/
@@ -108,3 +109,10 @@ typedef enum {
     CTIMAPFolderFlagArchive     = 1 << 12,
     
 } CTIMAPFolderFlag;
+
+typedef enum {
+    IMAPStoreFlagsRequestKindAdd,
+    IMAPStoreFlagsRequestKindRemove,
+    IMAPStoreFlagsRequestKindSet,
+    
+}IMAPStoreFlagsRequestKind;

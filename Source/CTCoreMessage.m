@@ -750,6 +750,16 @@
     mailPriority = priority;
 }
 
+- (NSArray *)xGmailLabels
+{
+    return xGmailLabels;
+}
+
+- (void)setXGmailLabels:(NSArray *)labels
+{
+    xGmailLabels = labels;
+}
+
 - (struct mailmessage *)messageStruct {
     return myMessage;
 }

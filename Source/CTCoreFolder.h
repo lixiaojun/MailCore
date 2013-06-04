@@ -272,6 +272,19 @@
 - (BOOL)setFlags:(NSUInteger)flags extensionFlags:(NSArray *)extensionFlags forMessage:(CTCoreMessage *)msg;
 
 /**
+ Exposes the IMAP STORE command, Sets the message's flags on the server.
+ @return Return YES on success, NO on error. Call method lastError to get error if one occurred
+ */
+- (BOOL)storeFlags:(NSIndexSet *)uids requestKind:(IMAPStoreFlagsRequestKind)kind flags:(NSUInteger)flags;
+
+/**
+ Exposes the IMAP STORE X-GM-LABELS, Sets the message's X-GM-LABELS on the Gmail.
+ This is only supported by Gmail.
+ @return Return YES on success, NO on error. Call method lastError to get error if one occurred
+ */
+- (BOOL)storeLabels:(NSIndexSet *)uids requestKind:(IMAPStoreFlagsRequestKind)kind labels:(NSArray *)labels;
+
+/**
  Deletes all messages contained in the folder that are marked for
  deletion. Deleting messages in IMAP is a little strange, first
  you need to set the message flag CTFlagDeleted to CTFlagSet, and
