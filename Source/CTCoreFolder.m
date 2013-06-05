@@ -975,7 +975,7 @@ int uid_list_to_env_list(clist * fetch_result, struct mailmessage_list ** result
         f = mailimap_flag_new_answered();
         mailimap_flag_list_add(flag_list, f);
     }
-    if ((flags & MAIL_FLAG_FORWARDED) != 0) {
+    if ((flags & MAIL_FLAG_FLAGGED) != 0) {
         struct mailimap_flag * f;
         
         f = mailimap_flag_new_flagged();
@@ -985,6 +985,12 @@ int uid_list_to_env_list(clist * fetch_result, struct mailmessage_list ** result
         struct mailimap_flag * f;
         
         f = mailimap_flag_new_deleted();
+        mailimap_flag_list_add(flag_list, f);
+    }
+    if ((flags & MAIL_FLAG_FORWARDED) != 0) {
+        struct mailimap_flag * f;
+        
+        f = mailimap_flag_new_flag_keyword("$Forwarded");
         mailimap_flag_list_add(flag_list, f);
     }
     
